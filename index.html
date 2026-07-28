@@ -8,24 +8,20 @@
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #050505;
       color: #f4ecd9;
+      background: linear-gradient(rgba(0,0,0,0.82), rgba(0,0,0,0.82)), url("crest.jpg");
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      background-repeat: no-repeat;
     }
 
     header {
-      background: #0d0d0d;
+      background: rgba(13,13,13,0.82);
       border-bottom: 2px solid #d3ad54;
       padding: 20px;
       text-align: center;
-    }
-
-    header img {
-      max-width: 180px;
-      width: 100%;
-      height: auto;
-      margin-bottom: 12px;
-      border-radius: 10px;
-      box-shadow: 0 0 20px rgba(211,173,84,0.3);
+      backdrop-filter: blur(3px);
     }
 
     header h1 {
@@ -44,8 +40,9 @@
       justify-content: center;
       flex-wrap: wrap;
       gap: 10px;
-      background: #111;
+      background: rgba(17,17,17,0.82);
       padding: 15px;
+      backdrop-filter: blur(3px);
     }
 
     nav button {
@@ -79,8 +76,9 @@
       border: 1px solid #51411f;
       border-radius: 16px;
       padding: 35px;
-      background: linear-gradient(135deg, #17130b, #0b2117, #090909);
+      background: rgba(10,10,10,0.82);
       margin-bottom: 24px;
+      backdrop-filter: blur(4px);
     }
 
     h2 {
@@ -99,7 +97,7 @@
       margin-top: 20px;
       padding: 18px;
       border-left: 4px solid #d3ad54;
-      background: #090909;
+      background: rgba(0,0,0,0.6);
       color: #f0d286;
       font-family: Georgia, serif;
       font-size: 20px;
@@ -113,10 +111,11 @@
     }
 
     .card {
-      background: #111;
+      background: rgba(17,17,17,0.84);
       border: 1px solid #51411f;
       border-radius: 12px;
       padding: 20px;
+      backdrop-filter: blur(4px);
     }
 
     .card strong {
@@ -130,6 +129,7 @@
       padding: 20px;
       color: #857b6c;
       font-size: 12px;
+      background: rgba(0,0,0,0.45);
     }
 
     @media (max-width: 700px) {
@@ -140,17 +140,12 @@
       .hero {
         padding: 22px;
       }
-
-      header img {
-        max-width: 140px;
-      }
     }
   </style>
 </head>
 <body>
 
   <header>
-    <img src="crest.jpg" alt="Second Chance Legacy Crest" />
     <h1>SECOND CHANCE LEGACY</h1>
     <p>Scott | Louis-Scott Family Operating System</p>
   </header>
