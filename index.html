@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#050505">
+  <title>Second Chance Legacy Family OS</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg:#050505; --panel:#0e0e0e; --panel2:#171717;
+      --gold:#d3ad54; --gold2:#f2d88d; --green:#0d7046;
+      --cream:#f5edda; --muted:#b8af9d; --line:#51411f;
+      --danger:#d66a6a; --success:#9fe0bd;
+    }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      margin:0; min-height:100vh; color:var(--cream);
+      font-family:Arial,Helvetica,sans-serif;
+      background:
+        linear-gradient(rgba(0,0,0,.88),rgba(0,0,0,.93)),
+        url("crest.jpg") center/cover fixed no-repeat,
+        var(--bg);
+    }
+    button,input,select { font:inherit; }
+    button { cursor:pointer; }
+    [hidden] { display:none!important; }
+    .auth-shell {
+      min-height:100vh; display:grid; place-items:center; padding:24px;
+    }
+    .auth-card {
+      width:min(100%,520px); padding:30px;
+      border:1px solid var(--line); border-radius:22px;
+      background:rgba(7,7,7,.96); box-shadow:0 28px 70px rgba(0,0,0,.55);
+    }
+    .logo {
+      display:block; width:min(290px,72vw); height:auto;
+      margin:0 auto 18px;
+    }
+    h1,h2,h3 { font-family:Georgia,"Times New Roman",serif; }
+    .auth-card h1 {
+      margin:0; text-align:center; color:var(--gold2);
+      font-size:clamp(32px,7vw,50px); line-height:1.02;
+    }
+    .subtitle {
+      margin:12px 0 25px; text-align:center; color:var(--muted);
+      line-height:1.55;
+    }
+    .field { margin-bottom:15px; }
+    label {
+      display:block; margin-bottom:7px; color:#e6d9bb;
+      font-size:14px; font-weight:700;
+    }
+    input,select {
+      width:100%; padding:13px 14px; color:#fff; background:#111;
+      border:1px solid #5d4d2a; border-radius:10px; outline:none;
+    }
+    input:focus,select:focus {
+      border-color:var(--gold); box-shadow:0 0 0 3px rgba(211,173,84,.13);
+    }
+    .primary,.secondary,.danger {
+      border-radius:10px; padding:12px 15px; font-weight:700;
+    }
+    .primary {
+      width:100%; color:#111; background:var(--gold2);
+      border:1px solid var(--gold);
+    }
+    .secondary {
+      color:var(--gold2); background:#111; border:1px solid var(--gold);
+    }
+    .danger {
+      color:#ffd0d0; background:#2a1010; border:1px solid #8b4141;
+    }
+    .link-btn {
+      width:100%; margin-top:12px; border:0; background:transparent;
+      color:var(--gold2); text-align:center;
+    }
+    .notice,.error {
+      margin:14px 0; padding:12px 14px; border-radius:10px; line-height:1.5;
+    }
+    .notice { color:#b9e5cc; background:#0b2418; border:1px solid #3b6c55; }
+    .error { color:#ffd2d2; background:#291010; border:1px solid #814242; }
+    .small { color:#918876; font-size:12px; line-height:1.5; }
+
+    .app {
+      min-height:100vh; display:grid; grid-template-columns:280px minmax(0,1fr);
+    }
+    aside {
+      position:sticky; top:0; height:100vh; overflow:auto;
+      padding:18px 15px; background:rgba(6,6,6,.97);
+      border-right:1px solid var(--line);
+    }
+    .brand {
+      display:flex; align-items:center; gap:12px;
+      padding:5px 6px 17px; border-bottom:1px solid #2d2616;
+    }
+    .brand img { width:62px; height:76px; object-fit:contain; }
+    .brand strong {
+      display:block; color:var(--gold2); font:700 16px Georgia,serif;
+      letter-spacing:.06em;
+    }
+    .brand small { color:var(--muted); }
+    nav { display:grid; gap:8px; margin-top:18px; }
+    nav button {
+      width:100%; padding:12px 13px; text-align:left;
+      border:1px solid transparent; border-radius:10px;
+      color:#d8cfbe; background:transparent;
+    }
+    nav button:hover,nav button.active {
+      color:#fff; border-color:var(--line);
+      background:linear-gradient(135deg,rgba(211,173,84,.18),rgba(13,112,70,.14));
+    }
+    .account {
+      margin-top:24px; padding:13px; background:#0b0b0b;
+      border:1px solid #302918; border-radius:11px; overflow-wrap:anywhere;
+    }
+    .account strong { display:block; color:var(--gold2); margin-bottom:5px; }
+    .role {
+      display:inline-block; margin-top:9px; padding:6px 9px;
+      color:var(--success); background:#0b2418; border:1px solid #2d7654;
+      border-radius:999px; font-size:11px; text-transform:uppercase;
+    }
+    main { min-width:0; padding:24px; }
+    .topbar {
+      display:flex; align-items:center; justify-content:space-between;
+      gap:14px; margin-bottom:20px;
+    }
+    .topbar h1 {
+      margin:0; color:var(--gold2); font-size:clamp(26px,4vw,40px);
+    }
+    .online {
+      display:inline-flex; gap:7px; align-items:center; padding:8px 11px;
+      color:var(--success); background:#0b2418; border:1px solid #2d7654;
+      border-radius:999px; font-size:12px;
+    }
+    .page { display:none; }
+    .page.active { display:block; }
+    .hero,.panel {
+      padding:clamp(24px,5vw,46px); background:rgba(8,8,8,.92);
+      border:1px solid var(--line); border-radius:18px;
+    }
+    .eyebrow {
+      color:var(--gold); text-transform:uppercase;
+      letter-spacing:.16em; font-size:12px;
+    }
+    h2 {
+      margin:8px 0 16px; color:var(--gold2);
+      font-size:clamp(32px,5vw,54px);
+    }
+    h3 { color:var(--gold2); }
+    p { color:#cec5b3; line-height:1.72; }
+    .quote {
+      margin-top:22px; padding:19px; color:#f0dc9d; background:#060606;
+      border-left:4px solid var(--gold); font:italic 20px/1.5 Georgia,serif;
+    }
+    .cards,.docs {
+      display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:15px; margin-top:20px;
+    }
+    .card,.doc {
+      padding:19px; background:linear-gradient(180deg,#151515,#0a0a0a);
+      border:1px solid var(--line); border-radius:13px;
+    }
+    .card strong,.doc h3 {
+      display:block; margin:0 0 7px; color:var(--gold2);
+    }
+    .toolbar {
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px; flex-wrap:wrap; margin:18px 0;
+    }
+    .toolbar input { max-width:380px; }
+    .chips { display:flex; flex-wrap:wrap; gap:7px; margin:10px 0 14px; }
+    .chip {
+      padding:5px 8px; color:#d9ca9e; background:#15120a;
+      border:1px solid #514623; border-radius:999px; font-size:11px;
+    }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .empty {
+      padding:26px; text-align:center; color:var(--muted);
+      background:rgba(8,8,8,.8); border:1px dashed #5d4d2a;
+      border-radius:13px;
+    }
+    .upload {
+      margin-top:24px; padding:20px; background:rgba(7,33,22,.82);
+      border:1px solid #2e694e; border-radius:14px;
+    }
+    .upload-grid {
+      display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:13px;
+    }
+    .wide { grid-column:1/-1; }
+    .audit-list { display:grid; gap:9px; margin-top:16px; }
+    .audit-item {
+      padding:12px 14px; color:#cfc5b1; background:#0a0a0a;
+      border:1px solid #332d1d; border-radius:10px; font-size:13px; line-height:1.55;
+    }
+    footer {
+      margin-top:28px; padding:18px 0 5px; text-align:center;
+      color:#776e5f; font-size:12px;
+    }
+    @media(max-width:900px) {
+      .app { grid-template-columns:1fr; }
+      aside {
+        position:relative; height:auto; border-right:0;
+        border-bottom:1px solid var(--line);
+      }
+      nav { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      nav button { text-align:center; }
+      main { padding:16px; }
+    }
+    @media(max-width:650px) {
+      .cards,.docs,.upload-grid { grid-template-columns:1fr; }
+      .topbar { align-items:flex-start; flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+  <section class="auth-shell" id="authShell">
+    <div class="auth-card">
+      <img src="crest-transparent.png" alt="Second Chance Legacy Crest" class="logo">
+      <h1>SECOND CHANCE LEGACY</h1>
+      <p class="subtitle" id="authSubtitle">Private Family Operating System</p>
+      <div id="authMessage"></div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="loginEmail">Email address</label>
+          <input id="loginEmail" type="email" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" type="password" autocomplete="current-password" minlength="16" required>
+        </div>
+        <button class="primary" type="submit">Enter Family Vault</button>
+        <button class="link-btn" type="button" id="forgotBtn">Forgot password?</button>
+      </form>
+
+      <form id="passwordForm" hidden>
+        <div class="notice">Create your private password to activate or recover your invited account.</div>
+        <div class="field">
+          <label for="newPassword">New password</label>
+          <input id="newPassword" type="password" autocomplete="new-password" minlength="16" required>
+        </div>
+        <div class="field">
+          <label for="confirmPassword">Confirm password</label>
+          <input id="confirmPassword" type="password" autocomplete="new-password" minlength="16" required>
+        </div>
+        <button class="primary" type="submit">Activate My Account</button>
+        <p class="small">Use at least 16 characters and do not reuse an email, bank, or social-media password.</p>
+      </form>
+    </div>
+  </section>
+
+  <div class="app" id="appShell" hidden>
+    <aside>
+      <div class="brand">
+        <img src="crest-transparent.png" alt="">
+        <div>
+          <strong>SECOND CHANCE LEGACY</strong>
+          <small>Private Family OS</small>
+        </div>
+      </div>
+
+      <nav>
+        <button class="active" data-page="dashboard">Command Center</button>
+        <button data-page="vault">Private Vault</button>
+        <button data-page="trust">Section II — Trust</button>
+        <button data-page="mission">Mission & Values</button>
+        <button data-page="security">Security & Activity</button>
+      </nav>
+
+      <div class="account">
+        <strong id="accountName">Family Member</strong>
+        <span id="accountEmail"></span><br>
+        <span class="role" id="accountRole">Loading role</span>
+        <button class="danger" id="logoutBtn" style="width:100%;margin-top:13px;">Sign Out</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <h1 id="pageTitle">Family OS Command Center</h1>
+        <span class="online">● Secure Session Active</span>
+      </div>
+
+      <section class="page active" id="dashboard">
+        <div class="hero">
+          <div class="eyebrow">Scott | Louis-Scott Family</div>
+          <h2>Built so the next generation never has to start from zero.</h2>
+          <p>The Second Chance Legacy Family Operating System preserves the family’s history, values, businesses, assets, knowledge, traditions, wisdom, systems, and purpose.</p>
+          <div class="quote">We are not building wealth so our children never have to work. We are building systems so they never have to start from zero.</div>
+        </div>
+        <div class="cards">
+          <div class="card"><strong>Invite-Only Access</strong>Every account must be approved and invited. There is no public self-registration.</div>
+          <div class="card"><strong>Equal Top Authority</strong>Marquise D. Scott and Caprice B. Louis-Scott hold equal joint administrator authority.</div>
+          <div class="card"><strong>Private Vault</strong>Full Trust, LLC, ownership, and binder records stay in private Supabase Storage.</div>
+          <div class="card"><strong>Controlled Access</strong>Roles and database policies determine what each person may view or upload.</div>
+        </div>
+      </section>
+
+      <section class="page" id="vault">
+        <div class="panel">
+          <div class="eyebrow">Protected Records</div>
+          <h2>Private Family Vault</h2>
+          <p>Authorized documents open through temporary signed links that expire after 60 seconds.</p>
+
+          <div class="toolbar">
+            <input id="searchDocs" type="search" placeholder="Search documents">
+            <button class="secondary" id="refreshDocs">Refresh Vault</button>
+          </div>
+
+          <div id="vaultMessage"></div>
+          <div class="docs" id="docGrid"></div>
+          <div class="empty" id="docEmpty" hidden>No authorized documents are currently listed.</div>
+
+          <div class="upload" id="uploadPanel" hidden>
+            <h3>Upload a Private Document</h3>
+            <p class="small">Available to Joint Super Administrators and Family Administrators. The website does not expose permanent deletion.</p>
+            <form id="uploadForm">
+              <div class="upload-grid">
+                <div class="field">
+                  <label for="docTitle">Document title</label>
+                  <input id="docTitle" required>
+                </div>
+                <div class="field">
+                  <label for="docCategory">Category</label>
+                  <select id="docCategory" required>
+                    <option>Trust</option>
+                    <option>LLC & Business</option>
+                    <option>Family OS Binder</option>
+                    <option>Assets & Insurance</option>
+                    <option>Family History</option>
+                    <option>Emergency Continuity</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="docAccess">Access level</label>
+                  <select id="docAccess" required>
+                    <option value="joint_admin_only">Joint Administrators Only</option>
+                    <option value="trustee_confidential">Trustees & Joint Administrators</option>
+                    <option value="family_internal">Family Internal</option>
+                    <option value="family_history">Family History</option>
+                    <option value="youth">Youth Access</option>
+                    <option value="professional_limited">Professional Limited</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="docFile">Select file</label>
+                  <input id="docFile" type="file" required>
+                </div>
+                <div class="wide">
+                  <button class="primary" id="uploadBtn" type="submit">Upload to Private Vault</button>
+                </div>
+              </div>
+            </form>
+            <div id="uploadMessage"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="trust">
+        <div class="panel">
+          <div class="eyebrow">SCL-FOS-02</div>
+          <h2>Section II — The Trust</h2>
+          <p>The Second Chance Legacy Trust is the legal foundation beneath the Family Operating System and remains the 100% sole legal Member of Second Chance Property Solutions, LLC.</p>
+          <div class="cards">
+            <div class="card"><strong>Joint Grantors</strong>Marquise D. Scott and Caprice B. Louis-Scott.</div>
+            <div class="card"><strong>Initial Co-Trustees</strong>Both serve equally while living and competent.</div>
+            <div class="card"><strong>Major Decisions</strong>Major Trust and family-business actions require both written approvals.</div>
+            <div class="card"><strong>No Superior Authority</strong>Neither Joint Grantor or Co-Trustee has unilateral final control by default.</div>
+          </div>
+          <div class="quote">The Trust protects the structure. The Operating System preserves the knowledge. The family carries the responsibility.</div>
+        </div>
+      </section>
+
+      <section class="page" id="mission">
+        <div class="panel">
+          <div class="eyebrow">Section I</div>
+          <h2>Mission & Core Values</h2>
+          <p>Build a complete Family Operating System that preserves our family’s history, values, businesses, assets, knowledge, traditions, and hard-earned wisdom so every future generation inherits not only wealth, but structure, identity, responsibility, systems, and purpose.</p>
+          <div class="cards">
+            <div class="card"><strong>Family Before Ego</strong>Protect relationships, dignity, unity, and the family’s long-term interest.</div>
+            <div class="card"><strong>Ownership Over Excuses</strong>Accept responsibility, correct mistakes, and follow through.</div>
+            <div class="card"><strong>Leave Things Better</strong>Improve every system, asset, opportunity, and relationship entrusted to us.</div>
+            <div class="card"><strong>Build. Don’t Consume.</strong>Create assets, knowledge, businesses, and opportunities that outlive us.</div>
+            <div class="card"><strong>Protect the Legacy</strong>Preserve the family’s identity, records, resources, and governing intentions.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="security">
+        <div class="panel">
+          <div class="eyebrow">Security Administration</div>
+          <h2>Security & Activity</h2>
+          <div class="cards">
+            <div class="card"><strong>Account Model</strong>Invite-only individual accounts. Shared family credentials are prohibited.</div>
+            <div class="card"><strong>Session Protection</strong>The app signs users out after 30 minutes without activity.</div>
+            <div class="card"><strong>Private Storage</strong>Vault documents open through short-lived signed URLs.</div>
+            <div class="card"><strong>Optional MFA</strong>Authenticator MFA may be enabled by Marquise or Caprice but is not mandatory.</div>
+          </div>
+          <div id="auditSection" hidden>
+            <h3 style="margin-top:26px;">Recent Audit Activity</h3>
+            <button class="secondary" id="refreshAudit">Refresh Activity</button>
+            <div class="audit-list" id="auditList"></div>
+          </div>
+        </div>
+      </section>
+
+      <footer>SECOND CHANCE LEGACY FAMILY OPERATING SYSTEM · PRIVATE VAULT v1.0</footer>
+    </main>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://nvwhqvnzzbdiwdbterxd.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_Qzq84lME6MJInbtqQ-g5Hg_Oby6rqDx";
+    const BUCKET = "family-vault";
+    const IDLE_MS = 30 * 60 * 1000;
+
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
+    });
+
+    let user = null;
+    let profile = null;
+    let documents = [];
+    let idleTimer = null;
+
+    const $ = id => document.getElementById(id);
+    const authShell = $("authShell");
+    const appShell = $("appShell");
+    const loginForm = $("loginForm");
+    const passwordForm = $("passwordForm");
+    const authMessage = $("authMessage");
+
+    function esc(v) {
+      return String(v ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;")
+        .replaceAll(">","&gt;").replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function msg(el,text,type="notice") {
+      el.innerHTML = text ? `<div class="${type}">${esc(text)}</div>` : "";
+    }
+
+    function prettyRole(role) {
+      return {
+        joint_super_admin:"Joint Super Administrator",
+        successor_trustee:"Successor Trustee",
+        family_admin:"Family Administrator",
+        family_viewer:"Family Viewer",
+        youth_viewer:"Youth Viewer",
+        professional_limited:"Professional Limited"
+      }[role] || role || "Authorized User";
+    }
+
+    function isAdmin() {
+      return ["joint_super_admin","family_admin"].includes(profile?.role);
+    }
+
+    function isJointAdmin() {
+      return profile?.role === "joint_super_admin";
+    }
+
+    function hasAuthActionInUrl() {
+      const hash = new URLSearchParams(location.hash.replace(/^#/,""));
+      const query = new URLSearchParams(location.search);
+      const type = hash.get("type") || query.get("type");
+      return type === "invite" || type === "recovery";
+    }
+
+    function showLogin() {
+      authShell.hidden = false;
+      appShell.hidden = true;
+      loginForm.hidden = false;
+      passwordForm.hidden = true;
+      $("authSubtitle").textContent = "Private Family Operating System";
+    }
+
+    function showPasswordSetup() {
+      authShell.hidden = false;
+      appShell.hidden = true;
+      loginForm.hidden = true;
+      passwordForm.hidden = false;
+      $("authSubtitle").textContent = "Activate or recover your private account";
+    }
+
+    async function audit(action,target,details) {
+      if (!user?.email) return;
+      try {
+        await sb.from("audit_log").insert({
+          user_email:user.email, action, target, details
+        });
+      } catch (_) {}
+    }
+
+    function startIdleTimer() {
+      const reset = () => {
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(async () => {
+          await audit("automatic_logout","session","30 minutes without activity");
+          await sb.auth.signOut();
+          alert("Your Family OS session ended after 30 minutes without activity.");
+        }, IDLE_MS);
+      };
+      ["click","keydown","touchstart","mousemove"].forEach(evt =>
+        addEventListener(evt,reset,{passive:true})
+      );
+      reset();
+    }
+
+    async function registerDevice() {
+      const key = `scl-device-${user.id}`;
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+        await audit("new_device_session","authentication",navigator.userAgent);
+      } else {
+        await audit("login","authentication",navigator.platform || "Known device");
+      }
+    }
+
+    async function openApp(session) {
+      user = session.user;
+      authShell.hidden = true;
+      appShell.hidden = false;
+
+      const {data,error} = await sb.from("family_profiles")
+        .select("*").eq("id",user.id).maybeSingle();
+
+      if (error || !data) {
+        alert(error ? error.message : "Your Family OS profile has not been created yet. Run the security patch.");
+        return;
+      }
+
+      profile = data;
+      $("accountName").textContent = profile.full_name || "Authorized Family Member";
+      $("accountEmail").textContent = user.email || profile.email || "";
+      $("accountRole").textContent = prettyRole(profile.role);
+      $("uploadPanel").hidden = !isAdmin();
+      $("auditSection").hidden = !isJointAdmin();
+
+      startIdleTimer();
+      await registerDevice();
+      await loadDocs();
+      if (isJointAdmin()) await loadAudit();
+    }
+
+    loginForm.addEventListener("submit", async e => {
+      e.preventDefault();
+      msg(authMessage,"");
+      const email = $("loginEmail").value.trim();
+      const password = $("loginPassword").value;
+      const {error} = await sb.auth.signInWithPassword({email,password});
+      if (error) msg(authMessage,error.message,"error");
+    });
+
+    passwordForm.addEventListener("submit", async e => {
+      e.preventDefault();
+      msg(authMessage,"");
+      const password = $("newPassword").value;
+      const confirm = $("confirmPassword").value;
+      if (password.length < 16) return msg(authMessage,"Use at least 16 characters.","error");
+      if (password !== confirm) return msg(authMessage,"The passwords do not match.","error");
+
+      const {error} = await sb.auth.updateUser({password});
+      if (error) return msg(authMessage,error.message,"error");
+
+      history.replaceState({},document.title,location.pathname);
+      await audit("password_created","authentication","Invitation or recovery password set");
+      const {data} = await sb.auth.getSession();
+      if (data.session) await openApp(data.session);
+    });
+
+    $("forgotBtn").addEventListener("click", async () => {
+      const email = $("loginEmail").value.trim();
+      if (!email) return msg(authMessage,"Enter your email address first.","error");
+      const redirectTo = location.origin + location.pathname;
+      const {error} = await sb.auth.resetPasswordForEmail(email,{redirectTo});
+      if (error) msg(authMessage,error.message,"error");
+      else msg(authMessage,"A reset email was sent if the account is authorized.");
+    });
+
+    $("logoutBtn").addEventListener("click", async () => {
+      await audit("logout","authentication","User signed out");
+      await sb.auth.signOut();
+    });
+
+    document.querySelectorAll("[data-page]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".page").forEach(p =>
+          p.classList.toggle("active",p.id === btn.dataset.page)
+        );
+        document.querySelectorAll("[data-page]").forEach(b =>
+          b.classList.toggle("active",b === btn)
+        );
+        $("pageTitle").textContent = btn.textContent;
+        scrollTo({top:0,behavior:"smooth"});
+      });
+    });
+
+    async function loadDocs() {
+      msg($("vaultMessage"),"");
+      $("docGrid").innerHTML = "";
+      const {data,error} = await sb.from("family_documents")
+        .select("*").order("created_at",{ascending:false});
+
+      if (error) {
+        $("docEmpty").hidden = true;
+        return msg($("vaultMessage"),"Vault load failed: " + error.message,"error");
+      }
+
+      documents = data || [];
+      renderDocs(documents);
+    }
+
+    function renderDocs(list) {
+      const grid = $("docGrid");
+      grid.innerHTML = "";
+      $("docEmpty").hidden = list.length !== 0;
+
+      list.forEach(record => {
+        const el = document.createElement("article");
+        el.className = "doc";
+        el.innerHTML = `
+          <h3>${esc(record.title)}</h3>
+          <div class="chips">
+            <span class="chip">${esc(record.category || "Uncategorized")}</span>
+            <span class="chip">${esc(record.access_level)}</span>
+          </div>
+          <p class="small">Added ${new Date(record.created_at).toLocaleString()}</p>
+          <div class="actions">
+            <button class="secondary">Open Securely</button>
+          </div>
+        `;
+        el.querySelector("button").addEventListener("click",() => openDoc(record));
+        grid.appendChild(el);
+      });
+    }
+
+    $("searchDocs").addEventListener("input",e => {
+      const term = e.target.value.trim().toLowerCase();
+      renderDocs(documents.filter(d =>
+        `${d.title} ${d.category} ${d.access_level}`.toLowerCase().includes(term)
+      ));
+    });
+
+    $("refreshDocs").addEventListener("click",loadDocs);
+
+    async function openDoc(record) {
+      const {data,error} = await sb.storage.from(BUCKET).createSignedUrl(record.file_path,60);
+      if (error) return alert("Secure link failed: " + error.message);
+      await audit("document_opened",record.title,record.file_path);
+      window.open(data.signedUrl,"_blank","noopener,noreferrer");
+    }
+
+    $("uploadForm").addEventListener("submit",async e => {
+      e.preventDefault();
+      if (!isAdmin()) return;
+
+      const file = $("docFile").files[0];
+      if (!file) return msg($("uploadMessage"),"Choose a file.","error");
+
+      const title = $("docTitle").value.trim();
+      const category = $("docCategory").value;
+      const access = $("docAccess").value;
+      const clean = file.name.normalize("NFKD")
+        .replace(/[^a-zA-Z0-9._-]+/g,"-").replace(/-+/g,"-");
+      const folder = category.toLowerCase().replace(/[^a-z0-9]+/g,"-");
+      const path = `${folder}/${Date.now()}-${clean}`;
+
+      $("uploadBtn").disabled = true;
+      $("uploadBtn").textContent = "Uploading securely...";
+
+      const {error:uploadError} = await sb.storage.from(BUCKET)
+        .upload(path,file,{cacheControl:"3600",upsert:false});
+
+      if (uploadError) {
+        msg($("uploadMessage"),uploadError.message,"error");
+      } else {
+        const {error:recordError} = await sb.from("family_documents").insert({
+          title, category, file_path:path, access_level:access, uploaded_by:user.email
+        });
+
+        if (recordError) {
+          await sb.storage.from(BUCKET).remove([path]);
+          msg($("uploadMessage"),"Upload rolled back: " + recordError.message,"error");
+        } else {
+          await audit("document_uploaded",title,`${path} | ${access}`);
+          msg($("uploadMessage"),"Document added to the private vault.");
+          e.target.reset();
+          await loadDocs();
+        }
+      }
+
+      $("uploadBtn").disabled = false;
+      $("uploadBtn").textContent = "Upload to Private Vault";
+    });
+
+    async function loadAudit() {
+      if (!isJointAdmin()) return;
+      const list = $("auditList");
+      list.innerHTML = "";
+      const {data,error} = await sb.from("audit_log")
+        .select("*").order("created_at",{ascending:false}).limit(30);
+
+      if (error) {
+        list.innerHTML = `<div class="error">${esc(error.message)}</div>`;
+        return;
+      }
+
+      (data || []).forEach(row => {
+        const el = document.createElement("div");
+        el.className = "audit-item";
+        el.innerHTML = `
+          <strong>${esc(row.action)}</strong><br>
+          ${esc(row.user_email || "System")} · ${esc(row.target || "")}<br>
+          ${esc(row.details || "")}<br>
+          <span class="small">${new Date(row.created_at).toLocaleString()}</span>
+        `;
+        list.appendChild(el);
+      });
+    }
+
+    $("refreshAudit").addEventListener("click",loadAudit);
+
+    sb.auth.onAuthStateChange(async (event,session) => {
+      if (event === "PASSWORD_RECOVERY") return showPasswordSetup();
+      if (!session) {
+        user = null; profile = null; clearTimeout(idleTimer);
+        return showLogin();
+      }
+      if (hasAuthActionInUrl()) return showPasswordSetup();
+      await openApp(session);
+    });
+
+    (async () => {
+      if (hasAuthActionInUrl()) showPasswordSetup();
+      const {data} = await sb.auth.getSession();
+      if (data.session && !hasAuthActionInUrl()) await openApp(data.session);
+      else if (!data.session && !hasAuthActionInUrl()) showLogin();
+    })();
+  </script>
+</body>
+</html>
