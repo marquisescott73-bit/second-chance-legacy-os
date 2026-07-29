@@ -182,7 +182,102 @@ async function renderSecurity(){if(!isFounder())return pageHost.innerHTML='<div 
 async function renderBackups(){if(!isFounder())return pageHost.innerHTML='<div class="error">Backup administration is limited to the Joint Authority accounts.</div>';const {data}=await sb.from('backup_records').select('*').order('backup_date',{ascending:false});pageHost.innerHTML=`<section class="panel"><div class="eyebrow">Continuity & Recovery</div><h2>Backup Register</h2><p class="lead">Record database exports, private-vault copies, encrypted offline copies, verification, and restore tests. Supabase Storage does not provide native object versioning, so document versions are preserved through separate file paths and metadata records.</p><div class="warning">A backup is not complete until it has been verified, stored away from the production account, and periodically restore-tested.</div><button class="btn btn-primary" id="addBackupBtn">Record Completed Backup</button><div class="table-wrap" style="margin-top:18px"><table class="data-table"><thead><tr><th>Date</th><th>Type</th><th>Location</th><th>Verified</th><th>Restore Tested</th><th>Notes</th></tr></thead><tbody>${(data||[]).map(b=>`<tr><td>${dateTime(b.backup_date)}</td><td>${pretty(b.backup_type)}</td><td>${esc(b.location_description)}</td><td>${b.verified?'Yes':'No'}</td><td>${b.restore_tested?'Yes':'No'}</td><td>${esc(b.notes||'')}</td></tr>`).join('')}</tbody></table></div><h3 class="section-title">Required Backup Layers</h3><div class="grid"><div class="card"><h3>Production</h3><p>Supabase database and private Storage bucket.</p></div><div class="card"><h3>Encrypted Offline</h3><p>Encrypted external drive stored in a secure location.</p></div><div class="card"><h3>Approved Cloud Copy</h3><p>Encrypted backup separate from the production account.</p></div><div class="card"><h3>Fireproof Binder</h3><p>Current controlling paper documents and master register.</p></div></div></section>`;$('addBackupBtn').addEventListener('click',addBackup)}
 async function addBackup(){const type=prompt('Backup type (database, vault, complete, binder):')?.trim();if(!type)return;const location=prompt('Secure location description (do not enter passwords or secret keys):')?.trim();if(!location)return;const verified=confirm('Was this backup verified?');const restore=confirm('Was a restore test completed?');const notes=prompt('Notes (optional):')||null;const {error}=await sb.from('backup_records').insert({backup_type:type,location_description:location,verified,verified_at:verified?new Date().toISOString():null,restore_tested:restore,restore_tested_at:restore?new Date().toISOString():null,completed_by:currentUser.id,notes});if(error)return toast(error.message,'error');toast('Backup record added.');await renderBackups()}
 
-async function renderAnnualReview(){const year=new Date().getFullYear();const {data,error}=await sb.from('annual_review_items').select('*').eq('review_year',year).order('category').order('title');if(error)throw error;const items=data||[],done=items.filter(i=>i.completed).length,pct=items.length?Math.round(done/items.length*100):0;pageHost.innerHTML=`<section class="panel"><div class="eyebrow">${year} Governance Cycle</div><h2>Annual Family OS Review</h2><p class="lead">Complete one coordinated review each year so the digital system, controlling documents, binder, access roles, and family intentions stay aligned.</p><div class="progress"><span style="width:${pct}%"></span></div><p>${done} of ${items.length} items complete · ${pct}%</p><div style="display:grid;gap:10px">${items.map(i=>`<label class="check-row ${i.completed?'completed':''}"><input type="checkbox" data-review="${i.id}" ${i.completed?'checked':''} ${isAdmin()?'':'disabled'}><span><strong style="color:var(--gold2)">${esc(i.title)}</strong><br><span class="small">${esc(i.category)} · ${esc(i.description||'')}</span>${i.completed?`<br><span class="small">Completed ${dateTime(i.completed_at)}</span>`:''}</span></label>`).join('')}</div></section>`;document.querySelectorAll('[data-review]').forEach(c=>c.addEventListener('change',async()=>{const completed=c.checked;const {error}=await sb.from('annual_review_items').update({completed,completed_by:completed?currentUser.id:null,completed_at:completed?new Date().toISOString():null}).eq('id',c.dataset.review);if(error){c.checked=!completed;return toast(error.message,'error')}await renderAnnualReview()}))}
+async function renderAnnualReview(){
+  const year=new Date().getFullYear();
+  const {data,error}=await sb.from('annual_review_items')
+    .select('*')
+    .eq('review_year',year)
+    .order('category')
+    .order('title');
+  if(error)throw error;
+
+  const items=data||[];
+  const done=items.filter(i=>i.completed).length;
+  const pct=items.length?Math.round(done/items.length*100):0;
+
+  pageHost.innerHTML=`
+    <section class="panel">
+      <div class="eyebrow">${year} Governance Cycle</div>
+      <h2>Annual Family OS Review</h2>
+      <p class="lead">Complete one coordinated review each year so the digital system, controlling documents, binder, access roles, and family intentions stay aligned.</p>
+      <div class="progress"><span style="width:${pct}%"></span></div>
+      <p>${done} of ${items.length} items complete · ${pct}%</p>
+
+      <div style="display:grid;gap:12px">
+        ${items.map(i=>`
+          <div class="check-row ${i.completed?'completed':''}" style="display:block">
+            <label style="display:flex;gap:12px;align-items:flex-start;cursor:pointer">
+              <input type="checkbox" data-review="${i.id}" ${i.completed?'checked':''} ${isAdmin()?'':'disabled'}>
+              <span>
+                <strong style="color:var(--gold2)">${esc(i.title)}</strong><br>
+                <span class="small">${esc(i.category)} · ${esc(i.description||'')}</span>
+                ${i.completed?`<br><span class="small">Completed ${dateTime(i.completed_at)}</span>`:''}
+              </span>
+            </label>
+
+            <div class="field" style="margin:14px 0 0 32px">
+              <label for="review-note-${i.id}">Review notes</label>
+              <textarea
+                id="review-note-${i.id}"
+                data-review-note="${i.id}"
+                placeholder="Add findings, updates, decisions, or follow-up needed."
+                ${isAdmin()?'':'disabled'}
+              >${esc(i.notes||'')}</textarea>
+            </div>
+
+            ${isAdmin()?`
+              <div style="margin:10px 0 0 32px">
+                <button class="secondary" type="button" data-save-review-note="${i.id}">Save Note</button>
+              </div>
+            `:''}
+          </div>
+        `).join('')}
+      </div>
+    </section>
+  `;
+
+  document.querySelectorAll('[data-review]').forEach(c=>{
+    c.addEventListener('change',async()=>{
+      const completed=c.checked;
+      const {error}=await sb.from('annual_review_items').update({
+        completed,
+        completed_by:completed?currentUser.id:null,
+        completed_at:completed?new Date().toISOString():null,
+        updated_at:new Date().toISOString()
+      }).eq('id',c.dataset.review);
+
+      if(error){
+        c.checked=!completed;
+        return toast(error.message,'error');
+      }
+
+      toast(completed?'Annual-review item completed.':'Annual-review item reopened.');
+      await renderAnnualReview();
+    });
+  });
+
+  document.querySelectorAll('[data-save-review-note]').forEach(button=>{
+    button.addEventListener('click',async()=>{
+      const id=button.dataset.saveReviewNote;
+      const notes=document.querySelector(`[data-review-note="${id}"]`)?.value.trim()||'';
+
+      button.disabled=true;
+      const originalText=button.textContent;
+      button.textContent='Saving…';
+
+      const {error}=await sb.from('annual_review_items').update({
+        notes:notes||null,
+        updated_at:new Date().toISOString()
+      }).eq('id',id);
+
+      button.disabled=false;
+      button.textContent=originalText;
+
+      if(error)return toast(error.message,'error');
+      toast('Annual-review note saved.');
+    });
+  });
+}
 
 $('globalSearch').addEventListener('keydown',async e=>{if(e.key!=='Enter')return;e.preventDefault();const term=e.target.value.trim().toLowerCase();if(!term)return;const [records,docs]=await Promise.all([getRecords(),getDocuments()]);const rr=records.filter(r=>`${r.title} ${r.summary} ${r.module} ${r.record_type} ${JSON.stringify(r.data)}`.toLowerCase().includes(term)),dd=docs.filter(d=>`${d.title} ${d.category} ${d.document_number} ${d.notes}`.toLowerCase().includes(term));$('pageTitle').textContent='Search Results';$('pageDescription').textContent=`Results for “${term}”`;pageHost.innerHTML=`<section class="panel"><h2>Global Search</h2><h3 class="section-title">Records (${rr.length})</h3>${rr.length?`<div class="records">${rr.map(r=>`<div class="record-card"><h3>${esc(r.title)}</h3><p>${esc(r.summary||'')}</p><button class="btn btn-secondary" data-search-record="${r.id}">Open</button></div>`).join('')}</div>`:'<div class="empty">No matching records.</div>'}<h3 class="section-title">Documents (${dd.length})</h3>${dd.length?`<div class="records">${dd.map(d=>`<div class="doc-card"><h3>${esc(d.title)}</h3><p>${esc(d.document_number||'')}</p><button class="btn btn-secondary" data-search-doc="${d.id}">Open Securely</button></div>`).join('')}</div>`:'<div class="empty">No matching documents.</div>'}</section>`;document.querySelectorAll('[data-search-record]').forEach(b=>b.addEventListener('click',()=>{const r=rr.find(x=>x.id===b.dataset.searchRecord);showRecordDetail(r,{approved:0,rejected:0})}));document.querySelectorAll('[data-search-doc]').forEach(b=>b.addEventListener('click',()=>openSecureDocument(dd.find(x=>x.id===b.dataset.searchDoc))))});
 
